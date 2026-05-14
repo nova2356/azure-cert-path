@@ -1,0 +1,42 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Azure CLI / credentials — NEVER commit
+.azure/
+*.publishsettings
+*.pfx
+*.key
+*.pem
+azureProfile.json
+azureauth.json
+*credentials*
+*secret*
+
+# Terraform state — never commit
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# Bicep generated files
+*.bicepparam.json
+
+# Local environment files
+.env
+.env.local
+
+# Logs and temp
+*.log
+tmp/
+temp/

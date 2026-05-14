@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS → Azure Service Mapping Cheat Sheet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #ff9900 0%, #0078d4 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #1f2937;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    overflow: hidden;
+  }
+  header {
+    background: linear-gradient(135deg, #232f3e 0%, #0078d4 100%);
+    color: white;
+    padding: 30px 40px;
+  }
+  h1 { font-size: 28px; margin-bottom: 6px; }
+  .subtitle { opacity: 0.9; font-size: 14px; }
+  .controls {
+    padding: 20px 40px;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #search {
+    flex: 1;
+    min-width: 220px;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  #search:focus { outline: 2px solid #0078d4; border-color: #0078d4; }
+  .filter-chip {
+    padding: 6px 14px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: #0078d4; }
+  .filter-chip.active {
+    background: #0078d4;
+    color: white;
+    border-color: #0078d4;
+  }
+  .category {
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .category h2 {
+    padding: 20px 40px 12px;
+    font-size: 18px;
+    color: #0078d4;
+    background: #fafafa;
+    border-left: 4px solid #0078d4;
+  }
+  .category-content {
+    padding: 16px 40px 24px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 16px;
+    padding: 14px;
+    border-bottom: 1px solid #f3f4f6;
+    align-items: start;
+  }
+  .row:hover { background: #fafafa; }
+  .row.header-row {
+    background: #f3f4f6;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #6b7280;
+    letter-spacing: 0.5px;
+  }
+  .row.header-row:hover { background: #f3f4f6; }
+  .aws { color: #ff9900; font-weight: 600; }
+  .azure { color: #0078d4; font-weight: 600; }
+  .note { font-size: 13px; color: #4b5563; line-height: 1.5; }
+  .gotcha {
+    background: #fef3c7;
+    border-left: 3px solid #f59e0b;
+    padding: 6px 10px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #78350f;
+    border-radius: 3px;
+  }
+  .gotcha::before { content: "⚠ "; font-weight: bold; }
+  .hidden { display: none !important; }
+  footer {
+    padding: 20px 40px;
+    background: #f9fafb;
+    text-align: center;
+    font-size: 12px;
+    color: #6b7280;
+  }
+  @media (max-width: 700px) {
+    .row { grid-template-columns: 1fr; gap: 6px; }
+    .row.header-row { display: none; }
+    .aws::before { content: "AWS: "; color: #6b7280; font-weight: normal; }
+    .azure::before { content: "Azure: "; color: #6b7280; font-weight: normal; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>AWS → Azure Service Mapping</h1>
+    <p class="subtitle">Cheat sheet for AWS practitioners learning Azure · Built for AZ-900 / AZ-104 / AZ-700 prep</p>
+  </header>
+
+  <div class="controls">
+    <input id="search" type="text" placeholder="Search services (e.g., VPC, S3, IAM, load balancer)..." oninput="filterRows()">
+    <button class="filter-chip active" data-cat="all" onclick="setFilter('all', this)">All</button>
+    <button class="filter-chip" data-cat="compute" onclick="setFilter('compute', this)">Compute</button>
+    <button class="filter-chip" data-cat="networking" onclick="setFilter('networking', this)">Networking</button>
+    <button class="filter-chip" data-cat="storage" onclick="setFilter('storage', this)">Storage</button>
+    <button class="filter-chip" data-cat="identity" onclick="setFilter('identity', this)">Identity</button>
+    <button class="filter-chip" data-cat="database" onclick="setFilter('database', this)">Database</button>
+    <button class="filter-chip" data-cat="management" onclick="setFilter('management', this)">Mgmt & Monitoring</button>
+    <button class="filter-chip" data-cat="devops" onclick="setFilter('devops', this)">DevOps & Containers</button>
+  </div>
+
+  <div id="content"></div>
+
+  <footer>
+    Tip: gotchas (⚠) are the differences that trip up AWS folks on Azure exams. Memorize these.
+  </footer>
+</div>
+
+<script>
+const mapping = [
+  {
+    category: "compute", title: "Compute",
+    rows: [
+      { aws: "EC2 (instance)", azure: "Virtual Machine", note: "Same concept. Azure VMs include OS disk as a managed disk by default; you don't pick an AMI, you pick an Image + Size." },
+      { aws: "AMI (Amazon Machine Image)", azure: "VM Image / Shared Image Gallery", note: "Azure Marketplace images + custom images stored in Azure Compute Gallery (formerly Shared Image Gallery)." },
+      { aws: "EBS volume", azure: "Managed Disk", note: "Disk SKUs: Standard HDD, Standard SSD, Premium SSD, Premium SSD v2, Ultra Disk.", gotcha: "Premium SSD requires a VM size with 's' in the name (e.g., D2s_v3). No 's' = no premium disk attachment." },
+      { aws: "Auto Scaling Group", azure: "Virtual Machine Scale Set (VMSS)", note: "Same idea: rules-based horizontal scaling. VMSS supports both Uniform and Flexible orchestration modes." },
+      { aws: "Elastic Beanstalk", azure: "App Service", note: "PaaS for web apps. App Service runs on App Service Plans (sizing tier you pay for, regardless of how many apps share it)." },
+      { aws: "Lambda", azure: "Azure Functions", note: "Serverless compute. Consumption plan = pay per execution; Premium / App Service Plan for warm starts.", gotcha: "Azure Functions have 'triggers' and 'bindings' as a first-class concept. AWS uses event source mappings." },
+      { aws: "Batch", azure: "Azure Batch", note: "HPC / large-scale parallel jobs. Same name, same purpose." },
+      { aws: "Lightsail", azure: "(no direct equivalent)", note: "Closest: App Service Plan Basic tier, or just a small VM. Azure doesn't bundle compute+storage+network like Lightsail." }
+    ]
+  },
+  {
+    category: "networking", title: "Networking (your AZ-700 focus)",
+    rows: [
+      { aws: "VPC", azure: "Virtual Network (VNet)", note: "Isolated network. Address space is CIDR-based.", gotcha: "Azure reserves 5 IPs per subnet (.0 network, .1 default gateway, .2/.3 DNS, .255 broadcast). AWS reserves 5 too but the .1 is the VPC router. Different reserved addresses." },
+      { aws: "Subnet", azure: "Subnet", note: "Subdivision of a VNet. Azure has no concept of public vs private subnet at the subnet level.", gotcha: "BIG difference: AWS public subnet = has route to IGW. Azure subnet 'becomes public' when you attach a public IP to a NIC in it. There's no Internet Gateway resource at all." },
+      { aws: "Route Table", azure: "Route Table (User-Defined Routes)", note: "Azure has implicit system routes plus user-defined routes (UDR) you create. UDRs override system routes." },
+      { aws: "Internet Gateway", azure: "(implicit)", note: "Azure has no IGW resource. Internet egress is automatic from any subnet without a forced UDR; ingress requires a public IP attached." },
+      { aws: "NAT Gateway", azure: "NAT Gateway", note: "Same concept and name. Used for outbound internet with deterministic SNAT.", gotcha: "Azure also has 'default outbound access' that goes away in Sept 2025. Always use NAT Gateway, LB outbound rules, or public IP explicitly going forward." },
+      { aws: "Security Group", azure: "Network Security Group (NSG)", note: "Stateful firewall rules. NSGs attach to subnets and/or NICs.", gotcha: "AWS SGs are deny-by-default with allow rules only. Azure NSGs have both allow AND deny rules with priorities (100–4096, lower = higher priority). Default rules at 65000+ allow VNet and Azure LB traffic." },
+      { aws: "Network ACL (stateless)", azure: "(no direct equivalent)", note: "NSGs replace both. For stateless, distributed enforcement use Azure Firewall instead." },
+      { aws: "VPC Peering", azure: "VNet Peering", note: "Same concept. Two flavors: regional (same region) and global (cross-region).", gotcha: "Peering is NOT transitive in Azure (same as AWS). Need hub-and-spoke + UDRs + NVA/firewall to chain communication. This is huge on AZ-700." },
+      { aws: "Transit Gateway", azure: "Virtual WAN / Azure Route Server", note: "Virtual WAN = hub-and-spoke at global scale. Route Server enables dynamic BGP between NVAs and Azure platform." },
+      { aws: "VPN Gateway (Site-to-Site)", azure: "VPN Gateway", note: "S2S, P2S, and VNet-to-VNet. SKUs: Basic, VpnGw1–5 (and AZ variants). Basic is legacy and limited." },
+      { aws: "Client VPN", azure: "Point-to-Site VPN", note: "Cert auth, RADIUS, or Entra ID auth. OpenVPN or IKEv2 protocol." },
+      { aws: "Direct Connect", azure: "ExpressRoute", note: "Private dedicated connection. Uses BGP. SKUs: Standard, Premium (global reach + more routes).", gotcha: "ExpressRoute has 3 peering types historically: private, Microsoft, public (public deprecated). For AZ-700 know private peering = VNet access, Microsoft peering = Microsoft 365/Azure PaaS." },
+      { aws: "Direct Connect Gateway", azure: "ExpressRoute Gateway + Global Reach", note: "ER Gateway sits in a VNet; Global Reach connects two ER circuits to each other (e.g., branch-to-branch via Microsoft backbone)." },
+      { aws: "Elastic Load Balancer (ALB/NLB)", azure: "Load Balancer + Application Gateway", note: "Azure splits L4 and L7: Azure Load Balancer = L4 (NLB equivalent), Application Gateway = L7 (ALB equivalent).", gotcha: "Don't conflate. ALB ≠ Azure LB. ALB ≈ App Gateway. Azure LB doesn't do path-based routing or TLS termination — that's App Gateway's job." },
+      { aws: "CloudFront", azure: "Azure Front Door / Azure CDN", note: "Front Door = global L7 LB + CDN + WAF. CDN as a standalone service is being retired in favor of Front Door." },
+      { aws: "Global Accelerator", azure: "Azure Front Door (with Premium tier) / Cross-region LB", note: "Anycast-based traffic routing to nearest healthy region." },
+      { aws: "Route 53", azure: "Azure DNS + Traffic Manager", note: "Azure DNS = hosted zones (public + private). Traffic Manager = DNS-based traffic routing (weighted, geographic, priority, performance)." },
+      { aws: "PrivateLink / VPC Endpoint (Interface)", azure: "Private Endpoint / Private Link", note: "Private IP in your VNet for a PaaS service (Storage, SQL, etc.). Eliminates public exposure.", gotcha: "Service Endpoints (different feature!) keep the public IP but lock the service to your VNet via the Microsoft backbone. Service Endpoint ≠ Private Endpoint. AZ-700 loves to test this." },
+      { aws: "VPC Endpoint (Gateway, S3/DynamoDB)", azure: "Service Endpoint", note: "Free, VNet-scoped, no private IP. Service still has public DNS. Cheap way to restrict storage access to a VNet." },
+      { aws: "WAF", azure: "Azure WAF", note: "Runs on Application Gateway or Front Door. OWASP rule sets + custom rules + bot protection." },
+      { aws: "Shield Standard / Advanced", azure: "DDoS Protection (Basic free / Network or IP tier)", note: "Basic is always on for free. Network/IP tiers add telemetry, mitigation reports, cost protection." },
+      { aws: "Network Firewall", azure: "Azure Firewall", note: "Managed stateful firewall (L3-L7). SKUs: Standard, Premium (TLS inspection, IDPS), Basic. Firewall Manager centralizes policies." },
+      { aws: "VPC Flow Logs", azure: "NSG Flow Logs / VNet Flow Logs", note: "Stored in storage account, analyzed via Traffic Analytics in Log Analytics." },
+      { aws: "Reachability Analyzer", azure: "Network Watcher (Connection Troubleshoot, Next Hop, IP Flow Verify)", note: "Network Watcher is the umbrella service. Know the sub-tools by name for AZ-700." },
+      { aws: "Session Manager (jump host)", azure: "Azure Bastion", note: "Browser-based RDP/SSH to VMs without public IPs. Sits in dedicated AzureBastionSubnet (/26 or larger)." }
+    ]
+  },
+  {
+    category: "storage", title: "Storage",
+    rows: [
+      { aws: "S3", azure: "Blob Storage (in a Storage Account)", note: "Object storage. Containers ≈ buckets. Tiers: Hot, Cool, Cold, Archive.", gotcha: "Storage Account is a wrapper around blob, file, queue, and table services. You don't create blob storage directly — you create a storage account, then containers inside it." },
+      { aws: "S3 Glacier", azure: "Archive Tier (in Blob Storage)", note: "Not a separate service — a tier within blob storage. Retrieval takes hours." },
+      { aws: "EFS", azure: "Azure Files", note: "Managed SMB/NFS file share. SMB supports Entra ID / AD DS auth. NFS available too." },
+      { aws: "FSx for Windows", azure: "Azure Files (Premium, SMB)", note: "AD-joined SMB share." },
+      { aws: "FSx for Lustre", azure: "Azure Managed Lustre", note: "HPC parallel file system." },
+      { aws: "Storage Gateway", azure: "Azure File Sync / StorSimple (deprecated)", note: "Azure File Sync caches Azure Files locally on Windows Server." },
+      { aws: "Snowball / Snowmobile", azure: "Azure Data Box", note: "Physical device for offline data transfer." },
+      { aws: "Storage redundancy: SSE, Cross-Region Replication", azure: "LRS / ZRS / GRS / GZRS / RA-GRS / RA-GZRS", note: "Azure makes you pick redundancy upfront. LRS = 1 datacenter, ZRS = 3 zones in 1 region, GRS = 2 regions, GZRS = ZRS + paired region.", gotcha: "Memorize these acronyms for AZ-104. Every storage question references them." }
+    ]
+  },
+  {
+    category: "identity", title: "Identity & Governance",
+    rows: [
+      { aws: "IAM Users", azure: "Microsoft Entra ID Users", note: "Entra ID (formerly Azure AD) is Azure's identity provider.", gotcha: "Entra ID is NOT a domain controller. It's not the same as AD DS. If you need traditional AD (Kerberos, GPOs), use Entra Domain Services or IaaS DCs." },
+      { aws: "IAM Roles", azure: "Azure RBAC Roles + Managed Identities", note: "RBAC = role assignments on scopes (mgmt group / sub / RG / resource). Managed Identity = the 'role assumed by a resource' equivalent." },
+      { aws: "IAM Policies", azure: "RBAC role definitions (built-in or custom)", note: "RBAC is allow-only. Use Azure Policy + deny assignments for forbidden actions." },
+      { aws: "IAM Identity Center (SSO)", azure: "Entra ID (native SSO)", note: "Entra ID is itself the SSO/IdP. SAML, OIDC, and OAuth2 supported." },
+      { aws: "Organizations + SCPs", azure: "Management Groups + Azure Policy", note: "Mgmt groups give hierarchy; Policy enforces compliance.", gotcha: "Hierarchy: Tenant Root MG → Management Groups → Subscriptions → Resource Groups → Resources. RBAC and Policy inherit downward." },
+      { aws: "Cognito", azure: "Entra External ID (formerly Azure AD B2C)", note: "Customer/consumer identity. Social login, custom branding." },
+      { aws: "Secrets Manager", azure: "Azure Key Vault", note: "Secrets, keys, certs. Access via RBAC (recommended) or access policies (legacy)." },
+      { aws: "KMS", azure: "Azure Key Vault (managed HSM tier)", note: "Same vault, but managed HSM tier provides FIPS 140-2 Level 3 single-tenant HSMs." },
+      { aws: "CloudTrail", azure: "Activity Log + Entra ID audit/sign-in logs", note: "Activity Log = control plane (who did what to what resource). Entra logs = identity events. Both exportable to Log Analytics." }
+    ]
+  },
+  {
+    category: "database", title: "Database",
+    rows: [
+      { aws: "RDS (Postgres/MySQL)", azure: "Azure Database for PostgreSQL / MySQL", note: "Flexible Server is the modern offering. Single Server is being retired." },
+      { aws: "RDS (SQL Server)", azure: "Azure SQL Managed Instance / Azure SQL Database", note: "SQL Database = PaaS, single DB; SQL Managed Instance = near-100% SQL Server compat with VNet integration; SQL on VM = full control IaaS." },
+      { aws: "Aurora", azure: "Azure SQL Hyperscale", note: "Hyperscale tier scales storage to 100TB+ with fast restores." },
+      { aws: "DynamoDB", azure: "Cosmos DB (NoSQL API)", note: "Cosmos DB supports multiple APIs: NoSQL (native), MongoDB, Cassandra, Gremlin, Table. Pick API at account creation.", gotcha: "Cosmos DB pricing is RU-based (Request Units). Very different from DynamoDB's RCU/WCU. Don't assume mental model transfers cleanly." },
+      { aws: "ElastiCache (Redis)", azure: "Azure Cache for Redis", note: "Managed Redis. Tiers: Basic, Standard, Premium, Enterprise." },
+      { aws: "Redshift", azure: "Azure Synapse Analytics (Dedicated SQL Pool)", note: "MPP data warehouse. Synapse also bundles Spark, pipelines, serverless SQL." },
+      { aws: "DocumentDB", azure: "Cosmos DB (MongoDB API)", note: "Use Cosmos DB with MongoDB API for Mongo-compatible workloads." }
+    ]
+  },
+  {
+    category: "management", title: "Management & Monitoring",
+    rows: [
+      { aws: "CloudWatch", azure: "Azure Monitor", note: "Umbrella. Includes Metrics, Logs (Log Analytics), Alerts, Application Insights, Insights for VMs/storage/network." },
+      { aws: "CloudWatch Logs", azure: "Log Analytics Workspace", note: "Query with KQL (Kusto Query Language). Learn basic KQL — it shows up in AZ-104 and AZ-700." },
+      { aws: "CloudWatch Alarms", azure: "Azure Monitor Alerts", note: "Alert rules → Action Groups → notifications/runbooks/Logic Apps." },
+      { aws: "X-Ray", azure: "Application Insights", note: "Distributed tracing + APM. Part of Azure Monitor." },
+      { aws: "CloudFormation", azure: "ARM templates / Bicep", note: "ARM = JSON (verbose). Bicep = DSL that compiles to ARM (cleaner, recommended). Both are Azure-native IaC.", gotcha: "Terraform works great on Azure too — many enterprises prefer it. Bicep is Azure-only; Terraform is multi-cloud. For your future Terraform learning, this matters." },
+      { aws: "Systems Manager Parameter Store", azure: "App Configuration / Key Vault", note: "App Configuration for non-secrets; Key Vault for secrets." },
+      { aws: "Systems Manager Run Command", azure: "Run Command / Azure Automation", note: "Run scripts on VMs without SSH/RDP." },
+      { aws: "Service Catalog", azure: "Azure Managed Applications / Blueprints (deprecated, use Template Specs)", note: "Curated deployment packages for internal consumers." },
+      { aws: "Cost Explorer / Budgets", azure: "Cost Management + Billing", note: "Cost analysis, budgets, recommendations. Free tool on every subscription." },
+      { aws: "Trusted Advisor", azure: "Azure Advisor", note: "Best practice recommendations across cost, security, reliability, performance, operational excellence." },
+      { aws: "Security Hub / GuardDuty", azure: "Microsoft Defender for Cloud", note: "CSPM + workload protection. Free tier = secure score; paid tiers = workload-specific threat detection." },
+      { aws: "Config", azure: "Azure Policy", note: "Compliance enforcement and audit. Initiative = a group of policies." }
+    ]
+  },
+  {
+    category: "devops", title: "DevOps & Containers",
+    rows: [
+      { aws: "ECS", azure: "Azure Container Instances (ACI) / Container Apps", note: "ACI = single container, fastest startup. Container Apps = serverless containers with scale-to-zero, KEDA-based scaling, Dapr support." },
+      { aws: "EKS", azure: "Azure Kubernetes Service (AKS)", note: "Managed Kubernetes. Control plane free; pay for worker nodes.", gotcha: "AKS has tight Entra ID integration for cluster auth and Azure RBAC for K8s authorization. Different from EKS IAM integration." },
+      { aws: "Fargate", azure: "Container Apps / ACI", note: "Serverless container runtime. Container Apps is the closest fit for Fargate-on-ECS patterns." },
+      { aws: "ECR", azure: "Azure Container Registry (ACR)", note: "Private Docker registry. Tiers: Basic, Standard, Premium (geo-replication, content trust, private endpoints)." },
+      { aws: "CodeCommit", azure: "Azure Repos (in Azure DevOps) / GitHub", note: "Microsoft owns GitHub — most cloud-native teams use GitHub directly." },
+      { aws: "CodePipeline / CodeBuild / CodeDeploy", azure: "Azure Pipelines / GitHub Actions", note: "Azure Pipelines is part of Azure DevOps Services. GitHub Actions is the modern preferred path." },
+      { aws: "CloudShell", azure: "Azure Cloud Shell", note: "Browser-based shell. Bash or PowerShell. Backed by a small storage account for persistence." },
+      { aws: "Step Functions", azure: "Logic Apps / Durable Functions", note: "Workflow orchestration. Logic Apps = low-code; Durable Functions = code-first." }
+    ]
+  }
+];
+
+const content = document.getElementById("content");
+
+function render() {
+  content.innerHTML = mapping.map(cat => `
+    <div class="category" data-cat="${cat.category}">
+      <h2>${cat.title}</h2>
+      <div class="category-content">
+        <div class="row header-row">
+          <div>AWS</div>
+          <div>Azure</div>
+          <div>Notes</div>
+        </div>
+        ${cat.rows.map(r => `
+          <div class="row" data-search="${(r.aws + ' ' + r.azure + ' ' + r.note).toLowerCase()}">
+            <div class="aws">${r.aws}</div>
+            <div class="azure">${r.azure}</div>
+            <div class="note">
+              ${r.note}
+              ${r.gotcha ? `<div class="gotcha">${r.gotcha}</div>` : ''}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `).join("");
+}
+
+let currentCat = "all";
+
+function setFilter(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  filterRows();
+}
+
+function filterRows() {
+  const q = document.getElementById("search").value.toLowerCase().trim();
+  document.querySelectorAll(".category").forEach(catEl => {
+    const catName = catEl.dataset.cat;
+    const catMatch = currentCat === "all" || currentCat === catName;
+    let anyVisible = false;
+    catEl.querySelectorAll(".row:not(.header-row)").forEach(row => {
+      const textMatch = !q || row.dataset.search.includes(q);
+      const show = catMatch && textMatch;
+      row.classList.toggle("hidden", !show);
+      if (show) anyVisible = true;
+    });
+    catEl.classList.toggle("hidden", !anyVisible);
+  });
+}
+
+render();
+</script>
+</body>
+</html>

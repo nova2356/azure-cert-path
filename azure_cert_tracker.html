@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure Certification Path Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #1f2937;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    overflow: hidden;
+  }
+  header {
+    background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
+    color: white;
+    padding: 30px 40px;
+  }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  .subtitle { opacity: 0.95; font-size: 15px; }
+  .summary-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    padding: 24px 40px;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .stat {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 4px solid #0078d4;
+  }
+  .stat-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 24px; font-weight: 700; color: #0078d4; margin-top: 4px; }
+  .progress-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0078d4, #50e6ff);
+    transition: width 0.4s ease;
+  }
+  .cert-section {
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .cert-header {
+    padding: 20px 40px;
+    background: #fafafa;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+  }
+  .cert-header:hover { background: #f3f4f6; }
+  .cert-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #0078d4;
+  }
+  .cert-meta {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+  .cert-progress-mini {
+    width: 200px;
+  }
+  .cert-progress-mini .progress-bar { margin-top: 0; }
+  .cert-percent {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0078d4;
+    margin-bottom: 4px;
+    text-align: right;
+  }
+  .toggle-icon {
+    font-size: 14px;
+    color: #6b7280;
+    margin-left: 16px;
+    transition: transform 0.2s;
+  }
+  .cert-header.collapsed .toggle-icon { transform: rotate(-90deg); }
+  .cert-content {
+    padding: 0 40px 24px;
+    display: block;
+  }
+  .cert-content.hidden { display: none; }
+  .week {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+  }
+  .week-title {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+    font-size: 15px;
+  }
+  .week-dates {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 12px;
+  }
+  .session {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-top: 1px dashed #e5e7eb;
+  }
+  .session:first-of-type { border-top: none; }
+  .session input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+    margin-top: 2px;
+    cursor: pointer;
+    accent-color: #0078d4;
+    flex-shrink: 0;
+  }
+  .session-content { flex: 1; }
+  .session-day {
+    font-weight: 600;
+    font-size: 13px;
+    color: #0078d4;
+    margin-right: 8px;
+  }
+  .session-task {
+    font-size: 14px;
+    color: #374151;
+  }
+  .session input:checked + .session-content .session-task {
+    text-decoration: line-through;
+    color: #9ca3af;
+  }
+  .exam-row {
+    margin-top: 12px;
+    padding: 12px;
+    background: #fff3cd;
+    border-left: 4px solid #f59e0b;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #78350f;
+  }
+  .resources {
+    margin-top: 16px;
+    padding: 14px;
+    background: #eff6ff;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1e3a8a;
+  }
+  .resources strong { display: block; margin-bottom: 6px; color: #0078d4; }
+  .resources ul { margin-left: 20px; }
+  .resources li { margin-bottom: 3px; }
+  footer {
+    padding: 20px 40px;
+    background: #f9fafb;
+    text-align: center;
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .reset-btn {
+    background: #fee2e2;
+    color: #991b1b;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .reset-btn:hover { background: #fecaca; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Azure Certification Path</h1>
+    <p class="subtitle">AZ-900 → AZ-104 → AZ-700 · Network Engineer Track · May 15 – Oct 16, 2026</p>
+  </header>
+
+  <div class="summary-bar">
+    <div class="stat">
+      <div class="stat-label">Overall Progress</div>
+      <div class="stat-value" id="overallPercent">0%</div>
+      <div class="progress-bar"><div class="progress-fill" id="overallProgress" style="width:0%"></div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Sessions Done</div>
+      <div class="stat-value" id="sessionsDone">0 / 0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Current Focus</div>
+      <div class="stat-value" id="currentFocus" style="font-size:18px;">AZ-900</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Next Exam</div>
+      <div class="stat-value" id="nextExam" style="font-size:16px;">June 6 · AZ-900</div>
+    </div>
+  </div>
+
+  <div id="certSections"></div>
+
+  <footer>
+    Progress saved automatically · Mon / Wed / Fri @ 7pm
+    <br><button class="reset-btn" onclick="resetAll()">Reset all progress</button>
+  </footer>
+</div>
+
+<script>
+const plan = [
+  {
+    id: "az900",
+    title: "AZ-900 · Azure Fundamentals",
+    meta: "3 weeks · May 15 – June 5 · Exam target: June 6, 2026 · $99",
+    resources: {
+      "Primary": ["John Savill's AZ-900 Study Cram (YouTube, free)"],
+      "Practice": ["Microsoft Learn free practice assessment", "MeasureUp AZ-900 (optional)"],
+      "Hands-on": ["Azure free account ($200 credit, 12 mo free tier)"]
+    },
+    weeks: [
+      { title: "Week 1 — Cloud concepts & core services", dates: "May 15 – May 17",
+        sessions: [
+          { day: "Fri May 15", task: "Set up Azure free account; watch Savill cram Pt 1 (cloud concepts)" },
+          { day: "Sat", task: "Optional: Explore Azure portal — create a resource group, deploy a test VM" }
+        ]},
+      { title: "Week 2 — Core Azure services + identity/governance", dates: "May 18 – May 24",
+        sessions: [
+          { day: "Mon May 18", task: "Savill cram Pt 2: compute, networking, storage services" },
+          { day: "Wed May 20", task: "Hands-on: VNet, VM, storage account; explore Entra ID basics" },
+          { day: "Fri May 22", task: "Identity, governance, compliance — Microsoft Learn modules" }
+        ]},
+      { title: "Week 3 — Pricing, SLA, practice exams", dates: "May 25 – May 31",
+        sessions: [
+          { day: "Mon May 25", task: "Pricing calculator, TCO, support plans, SLAs" },
+          { day: "Wed May 27", task: "Microsoft Learn free practice assessment (full run)" },
+          { day: "Fri May 29", task: "MeasureUp or 2nd practice exam — review wrong answers" }
+        ]},
+      { title: "Week 4 — Final review", dates: "June 1 – June 5",
+        sessions: [
+          { day: "Mon June 1", task: "Targeted review on weakest domain" },
+          { day: "Wed June 3", task: "Final practice exam — aim for 85%+" },
+          { day: "Fri June 5", task: "Light review only — rest up" }
+        ]},
+      { title: "EXAM", dates: "Saturday June 6, 2026", isExam: true }
+    ]
+  },
+  {
+    id: "az104",
+    title: "AZ-104 · Azure Administrator Associate",
+    meta: "10 weeks · June 8 – Aug 14 · Exam target: Aug 15, 2026 · $165",
+    resources: {
+      "Primary": ["John Savill's AZ-104 Master Class playlist (YouTube, free, ~40hr)", "Alt: Scott Duffy AZ-104 course on Udemy"],
+      "Practice": ["MeasureUp AZ-104", "Tutorials Dojo AZ-104", "Microsoft Learn practice assessment (free)"],
+      "Hands-on": ["MicrosoftLearning AZ-104 GitHub labs (official, free)", "Build everything in your free Azure tenant"]
+    },
+    weeks: [
+      { title: "Week 1 — Identity & Entra ID", dates: "June 8 – June 14",
+        sessions: [
+          { day: "Mon June 8", task: "Entra ID users, groups, devices, SSPR" },
+          { day: "Wed June 10", task: "Lab: configure Entra ID, MFA, conditional access" },
+          { day: "Fri June 12", task: "External identities, B2B, hybrid identity overview" }
+        ]},
+      { title: "Week 2 — Governance & subscriptions", dates: "June 15 – June 21",
+        sessions: [
+          { day: "Mon June 15", task: "Subscriptions, management groups, RBAC, custom roles" },
+          { day: "Wed June 17", task: "Lab: RBAC assignments, custom role creation" },
+          { day: "Fri June 19", task: "Azure Policy, locks, tags, cost management" }
+        ]},
+      { title: "Week 3 — Storage fundamentals", dates: "June 22 – June 28",
+        sessions: [
+          { day: "Mon June 22", task: "Storage accounts, blob tiers, redundancy options" },
+          { day: "Wed June 24", task: "Lab: create storage acct, blob containers, lifecycle policies" },
+          { day: "Fri June 26", task: "Azure Files, file sync, AzCopy, Storage Explorer" }
+        ]},
+      { title: "Week 4 — Storage security & networking", dates: "June 29 – July 5",
+        sessions: [
+          { day: "Mon June 29", task: "SAS tokens, access keys, firewalls, private endpoints" },
+          { day: "Wed July 1", task: "Lab: storage firewall + private endpoint config" },
+          { day: "Fri July 3", task: "Encryption, object replication, soft delete, versioning" }
+        ]},
+      { title: "Week 5 — Compute: VMs", dates: "July 6 – July 12",
+        sessions: [
+          { day: "Mon July 6", task: "VM sizes, availability zones/sets, disks, snapshots" },
+          { day: "Wed July 8", task: "Lab: deploy VMs, attach disks, configure availability" },
+          { day: "Fri July 10", task: "VM extensions, custom script extension, encryption at host" }
+        ]},
+      { title: "Week 6 — VM scale sets, containers, App Service", dates: "July 13 – July 19",
+        sessions: [
+          { day: "Mon July 13", task: "VM Scale Sets, autoscale, load balancing" },
+          { day: "Wed July 15", task: "Lab: VMSS with LB and autoscale rules" },
+          { day: "Fri July 17", task: "Container Apps, ACR, ACI, App Service basics" }
+        ]},
+      { title: "Week 7 — Virtual networking (your wheelhouse)", dates: "July 20 – July 26",
+        sessions: [
+          { day: "Mon July 20", task: "VNets, subnets, IP addressing, peering" },
+          { day: "Wed July 22", task: "Lab: hub-and-spoke topology with peering" },
+          { day: "Fri July 24", task: "NSGs, ASGs, route tables, system vs user-defined routes" }
+        ]},
+      { title: "Week 8 — Connectivity & DNS", dates: "July 27 – Aug 2",
+        sessions: [
+          { day: "Mon July 27", task: "Azure DNS public/private zones, name resolution" },
+          { day: "Wed July 29", task: "Lab: VPN gateway P2S setup (preview for AZ-700)" },
+          { day: "Fri July 31", task: "Load Balancer, Application Gateway intro, Bastion" }
+        ]},
+      { title: "Week 9 — Monitoring, backup, recovery", dates: "Aug 3 – Aug 9",
+        sessions: [
+          { day: "Mon Aug 3", task: "Azure Monitor, Log Analytics, alerts, KQL basics" },
+          { day: "Wed Aug 5", task: "Lab: configure monitoring + alerts on a VM" },
+          { day: "Fri Aug 7", task: "Azure Backup, Site Recovery, restore scenarios" }
+        ]},
+      { title: "Week 10 — Practice exams & review", dates: "Aug 10 – Aug 14",
+        sessions: [
+          { day: "Mon Aug 10", task: "Tutorials Dojo full exam #1 — review every wrong answer" },
+          { day: "Wed Aug 12", task: "MeasureUp full exam — aim for 85%+" },
+          { day: "Thu Aug 13", task: "Targeted weak-area review" },
+          { day: "Fri Aug 14", task: "Light review, rest" }
+        ]},
+      { title: "EXAM", dates: "Saturday Aug 15, 2026", isExam: true }
+    ]
+  },
+  {
+    id: "az700",
+    title: "AZ-700 · Azure Network Engineer Associate",
+    meta: "9 weeks · Aug 17 – Oct 16 · Exam target: Oct 17, 2026 · $165 · YOUR TARGET",
+    resources: {
+      "Primary": ["John Savill's AZ-700 Study Cram (YouTube, free)", "Microsoft Learn AZ-700 path (~9hr, free)"],
+      "Practice": ["MeasureUp AZ-700", "Tutorials Dojo AZ-700", "SkillCertPro AZ-700"],
+      "Hands-on": ["MicrosoftLearning AZ-700 GitHub labs", "Build everything you study — this exam rewards real config experience"]
+    },
+    weeks: [
+      { title: "Week 1 — Core networking infrastructure (25-30%)", dates: "Aug 17 – Aug 23",
+        sessions: [
+          { day: "Mon Aug 17", task: "IP addressing strategy, VNet design, segmentation, subnetting" },
+          { day: "Wed Aug 19", task: "Lab: multi-VNet design with subnets for gateways, firewalls, endpoints" },
+          { day: "Fri Aug 21", task: "VNet peering: regional, global, gateway transit, hub-and-spoke" }
+        ]},
+      { title: "Week 2 — Routing", dates: "Aug 24 – Aug 30",
+        sessions: [
+          { day: "Mon Aug 24", task: "System routes vs UDR, BGP fundamentals in Azure" },
+          { day: "Wed Aug 26", task: "Lab: UDR forcing traffic through NVA, effective routes troubleshooting" },
+          { day: "Fri Aug 28", task: "Azure Route Server, BGP peering, route propagation" }
+        ]},
+      { title: "Week 3 — VPN connectivity", dates: "Aug 31 – Sep 6",
+        sessions: [
+          { day: "Mon Aug 31", task: "Site-to-site VPN, VPN Gateway SKUs, IKE/IPsec" },
+          { day: "Wed Sep 2", task: "Lab: S2S VPN simulation between two VNets" },
+          { day: "Fri Sep 4", task: "Point-to-site VPN, certificate auth, Entra ID auth" }
+        ]},
+      { title: "Week 4 — ExpressRoute", dates: "Sep 7 – Sep 13",
+        sessions: [
+          { day: "Mon Sep 7", task: "ExpressRoute models, circuits, peering types, SKUs" },
+          { day: "Wed Sep 9", task: "ExpressRoute Global Reach, FastPath, redundancy" },
+          { day: "Fri Sep 11", task: "Lab: ER circuit config walkthrough (Savill demo + docs)" }
+        ]},
+      { title: "Week 5 — Virtual WAN & application delivery (15-20%)", dates: "Sep 14 – Sep 20",
+        sessions: [
+          { day: "Mon Sep 14", task: "Virtual WAN, hubs, secured hubs, Firewall Manager" },
+          { day: "Wed Sep 16", task: "Azure Load Balancer (Basic/Standard), backend pools, rules" },
+          { day: "Fri Sep 18", task: "Lab: LB with public + internal frontends" }
+        ]},
+      { title: "Week 6 — App Gateway & Front Door", dates: "Sep 21 – Sep 27",
+        sessions: [
+          { day: "Mon Sep 21", task: "Application Gateway v2, WAF, URL routing, listeners" },
+          { day: "Wed Sep 23", task: "Lab: App Gateway with path-based routing + WAF rules" },
+          { day: "Fri Sep 25", task: "Azure Front Door, Traffic Manager, comparison" }
+        ]},
+      { title: "Week 7 — Private access (10-15%) + Network security (15-20%)", dates: "Sep 28 – Oct 4",
+        sessions: [
+          { day: "Mon Sep 28", task: "Service endpoints vs Private Endpoints vs Private Link Service" },
+          { day: "Wed Sep 30", task: "Lab: Private Endpoint to storage acct + DNS integration" },
+          { day: "Fri Oct 2", task: "NSGs deep dive, ASGs, augmented security rules" }
+        ]},
+      { title: "Week 8 — Azure Firewall, DDoS, monitoring", dates: "Oct 5 – Oct 11",
+        sessions: [
+          { day: "Mon Oct 5", task: "Azure Firewall (Standard/Premium), policies, rule collection groups" },
+          { day: "Wed Oct 7", task: "Lab: Azure Firewall in hub with forced tunneling" },
+          { day: "Fri Oct 9", task: "DDoS Protection, Network Watcher, NSG flow logs, Connection Monitor" }
+        ]},
+      { title: "Week 9 — Practice exams & final review", dates: "Oct 12 – Oct 16",
+        sessions: [
+          { day: "Mon Oct 12", task: "Tutorials Dojo full exam — review every miss" },
+          { day: "Wed Oct 14", task: "MeasureUp full exam — aim for 85%+" },
+          { day: "Thu Oct 15", task: "Targeted weak-area review, Savill final cram rewatch" },
+          { day: "Fri Oct 16", task: "Light review, rest" }
+        ]},
+      { title: "EXAM", dates: "Saturday Oct 17, 2026", isExam: true }
+    ]
+  }
+];
+
+const STORAGE_KEY = "azureCertTracker_v1";
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function sessionKey(certId, weekIdx, sessIdx) {
+  return `${certId}_w${weekIdx}_s${sessIdx}`;
+}
+
+function render() {
+  const container = document.getElementById("certSections");
+  container.innerHTML = "";
+
+  let totalSessions = 0, totalDone = 0;
+  let firstIncompleteCert = null, firstIncompleteCertTitle = null, firstIncompleteExamDate = null;
+
+  plan.forEach(cert => {
+    const section = document.createElement("div");
+    section.className = "cert-section";
+
+    let certSessions = 0, certDone = 0;
+    cert.weeks.forEach((w, wi) => {
+      if (w.sessions) {
+        w.sessions.forEach((s, si) => {
+          certSessions++;
+          if (state[sessionKey(cert.id, wi, si)]) certDone++;
+        });
+      }
+    });
+    totalSessions += certSessions;
+    totalDone += certDone;
+    const certPct = certSessions ? Math.round((certDone / certSessions) * 100) : 0;
+
+    if (certPct < 100 && !firstIncompleteCert) {
+      firstIncompleteCert = cert.id;
+      firstIncompleteCertTitle = cert.title.split(" · ")[0];
+      const examWeek = cert.weeks.find(w => w.isExam);
+      firstIncompleteExamDate = examWeek ? examWeek.dates.replace("Saturday ", "").replace(", 2026", "") : "";
+    }
+
+    const isCollapsed = state[`collapsed_${cert.id}`] !== undefined ? state[`collapsed_${cert.id}`] : (cert.id !== "az900");
+
+    section.innerHTML = `
+      <div class="cert-header ${isCollapsed ? 'collapsed' : ''}" onclick="toggleCert('${cert.id}')">
+        <div>
+          <div class="cert-title">${cert.title}</div>
+          <div class="cert-meta">${cert.meta}</div>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <div class="cert-progress-mini">
+            <div class="cert-percent">${certPct}% · ${certDone}/${certSessions}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${certPct}%"></div></div>
+          </div>
+          <span class="toggle-icon">▼</span>
+        </div>
+      </div>
+      <div class="cert-content ${isCollapsed ? 'hidden' : ''}" id="content_${cert.id}">
+        ${cert.weeks.map((w, wi) => {
+          if (w.isExam) {
+            return `<div class="exam-row">🎯 EXAM DAY — ${w.dates}</div>`;
+          }
+          return `
+            <div class="week">
+              <div class="week-title">${w.title}</div>
+              <div class="week-dates">${w.dates}</div>
+              ${w.sessions.map((s, si) => {
+                const key = sessionKey(cert.id, wi, si);
+                const checked = state[key] ? "checked" : "";
+                return `
+                  <label class="session">
+                    <input type="checkbox" ${checked} onchange="toggleSession('${key}')">
+                    <div class="session-content">
+                      <span class="session-day">${s.day}</span>
+                      <span class="session-task">${s.task}</span>
+                    </div>
+                  </label>
+                `;
+              }).join("")}
+            </div>
+          `;
+        }).join("")}
+        <div class="resources">
+          ${Object.entries(cert.resources).map(([k, v]) => `
+            <strong>${k}</strong>
+            <ul>${v.map(item => `<li>${item}</li>`).join("")}</ul>
+          `).join("")}
+        </div>
+      </div>
+    `;
+    container.appendChild(section);
+  });
+
+  const overallPct = totalSessions ? Math.round((totalDone / totalSessions) * 100) : 0;
+  document.getElementById("overallPercent").textContent = `${overallPct}%`;
+  document.getElementById("overallProgress").style.width = `${overallPct}%`;
+  document.getElementById("sessionsDone").textContent = `${totalDone} / ${totalSessions}`;
+  document.getElementById("currentFocus").textContent = firstIncompleteCertTitle || "Done!";
+  document.getElementById("nextExam").textContent = firstIncompleteExamDate ? `${firstIncompleteExamDate} · ${firstIncompleteCertTitle}` : "All complete!";
+}
+
+function toggleSession(key) {
+  state[key] = !state[key];
+  saveState();
+  render();
+}
+
+function toggleCert(certId) {
+  const k = `collapsed_${certId}`;
+  state[k] = !state[k];
+  saveState();
+  render();
+}
+
+function resetAll() {
+  if (confirm("Reset all progress? This cannot be undone.")) {
+    state = {};
+    localStorage.removeItem(STORAGE_KEY);
+    render();
+  }
+}
+
+render();
+</script>
+</body>
+</html>
